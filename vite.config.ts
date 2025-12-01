@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         allowedHosts: [
-          'fahim-educational-platform.onrender.com',
+          'fahim-educational-platform.onrender.com',\n          'futuredoc-ai-amr.onrender.com',
           'localhost'
         ],
       },
