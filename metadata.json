@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Copy of Copy of Future Doctor by Amr",
+  "description": "An AI-powered medical assistant that provides futuristic diagnostics, personalized treatment plans, and proactive preventative care based on user-provided symptoms, voice descriptions, or images.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>نَبِض - طبيبك الرقمي المستقبلي</title>
+    <meta name="description" content="نَبِض هو مساعدك الطبي الفائق المدعوم بالذكاء الاصطناعي، يقدم تشخيصًا دقيقًا، خطط علاج شخصية، ورعاية وقائية استباقية. رؤية عمرو عبدالله.">
+    <meta name="theme-color" content="#020617">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="نَبِض - طبيبك الرقمي المستقبلي">
+    <meta property="og:description" content="مساعد طبي فائق يقدم تشخيصًا دقيقًا، خطط علاج شخصية، ورعاية وقائية استباقية.">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="نَبِض - طبيبك الرقمي المستقبلي">
+    <meta property="twitter:description" content="مساعد طبي فائق يقدم تشخيصًا دقيقًا، خطط علاج شخصية, ورعاية وقائية استباقية.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #020617; /* bg-slate-950 */
+            background-image: radial-gradient(circle at 1px 1px, rgba(203, 213, 225, 0.08) 1px, transparent 0);
+            background-size: 2rem 2rem;
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-in-out forwards;
+            opacity: 0;
+        }
+        .animate-stagger-in {
+            animation: fadeInUp 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        /* Custom scrollbar for a more modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; /* bg-slate-900 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b; /* bg-slate-800 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155; /* bg-slate-700 */
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0"
+      }
+    }
+    </script>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
