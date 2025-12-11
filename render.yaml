@@ -15,15 +15,21 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: ADMIN_USERNAME
-        value: FutureMed_AmrX
+        value: Nabd_Admin_27
       - key: ADMIN_PASSWORD
         sync: false
       - key: CORS_ORIGIN
-        value: https://your-frontend-domain.onrender.com
+        value: https://futuredoc-ai-amr.onrender.com
       - key: RATE_LIMIT_WINDOW_MS
         value: 900000
       - key: RATE_LIMIT_MAX_REQUESTS
         value: 100
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     healthCheckPath: /api/health
@@ -32,8 +38,8 @@ services:
 # Frontend Web Service
   - type: web
     name: medfutureai-frontend
-    env: static
+    env: node
     plan: free
-    buildCommand: npm run build
-    staticPublishPath: ./dist
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
     autoDeploy: true
