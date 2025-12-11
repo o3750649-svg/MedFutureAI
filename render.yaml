@@ -1,14 +1,10 @@
-# Render deployment configuration for MedFutureAI
-# This configuration deploys the app to Render and connects it to Supabase PostgreSQL
-
-services:
-  # Backend API Service
+services:  # Backend API Service
   - type: web
     name: futuredoc-ai-amr-backend
     env: node
     plan: free
     region: oregon
-    buildCommand: cd backend && pnpm install
+    buildCommand: npm install -g pnpm && cd backend && pnpm install
     startCommand: cd backend && pnpm start
     healthCheckPath: /api/health
     autoDeploy: true
@@ -42,7 +38,7 @@ services:
     env: static
     plan: free
     region: oregon
-    buildCommand: pnpm install && pnpm run build
+    buildCommand: npm install -g pnpm && pnpm install && pnpm run build
     staticPublishPath: ./dist
     autoDeploy: true
     envVars:
