@@ -8,8 +8,8 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    buildCommand: cd backend && pnpm install
+    startCommand: cd backend && pnpm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -42,7 +42,7 @@ services:
     env: static
     plan: free
     region: oregon
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    buildCommand: pnpm install && pnpm run build
     staticPublishPath: ./dist
     autoDeploy: true
     envVars:

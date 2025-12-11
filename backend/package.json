@@ -8,7 +8,9 @@
     "start": "node src/server-postgres.js",
     "dev": "node --watch src/server-postgres.js",
     "init-db": "node src/config/init-db.js",
-    "init-postgres-db": "node src/config/init-postgres-db.js"
+    "init-postgres-db": "node src/config/init-postgres-db.js",
+    "install": "pnpm install",
+    "build": "pnpm install"
   },
   "keywords": ["medical", "ai", "healthcare", "api"],
   "author": "Amr AI",
