@@ -1,0 +1,39 @@
+# Render deployment configuration for MedFutureAI
+# This configuration deploys the app to Render and connects it to Supabase PostgreSQL
+
+# Backend API Service
+services:
+  - type: web
+    name: medfutureai-backend
+    env: node
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        value: FutureMed_AmrX
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://your-frontend-domain.onrender.com
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+# Frontend Web Service
+  - type: web
+    name: medfutureai-frontend
+    env: static
+    plan: free
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
