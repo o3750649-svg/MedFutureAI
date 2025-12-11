@@ -1,6 +1,11 @@
 import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Fix for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Get database connection string from environment
 const DATABASE_URL = process.env.DATABASE_URL || process.env.DB_PATH;

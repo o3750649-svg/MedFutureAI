@@ -1,12 +1,17 @@
 # Render deployment configuration for MedFutureAI
 # This configuration deploys the app to Render and connects it to Supabase PostgreSQL
 
-# Backend API Service
 services:
+  # Backend API Service
   - type: web
-    name: medfutureai-backend
+    name: futuredoc-ai-amr-backend
     env: node
     plan: free
+    region: oregon
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -30,16 +35,28 @@ services:
         sync: false
       - key: DEEPSEEK_API_KEY
         sync: false
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
-    healthCheckPath: /api/health
-    autoDeploy: true
 
-# Frontend Web Service
+  # Frontend Static Site
   - type: web
-    name: medfutureai-frontend
-    env: node
+    name: futuredoc-ai-amr-frontend
+    env: static
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    region: oregon
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./dist
     autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
