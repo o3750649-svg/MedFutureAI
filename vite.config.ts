@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        allowedHosts: ['futuredoc-ai-amr.onrender.com'],
+        allowedHosts: ['futuredoc-ai-amr.onrender.com', 'localhost'],
       },
       preview: {
         port: 3000,
