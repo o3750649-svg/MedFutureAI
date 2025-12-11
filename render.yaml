@@ -1,4 +1,4 @@
-services:  # Backend API Service
+services:
   - type: web
     name: futuredoc-ai-amr-backend
     env: node
@@ -32,7 +32,6 @@ services:  # Backend API Service
       - key: DEEPSEEK_API_KEY
         sync: false
 
-  # Frontend Static Site
   - type: web
     name: futuredoc-ai-amr-frontend
     env: static
