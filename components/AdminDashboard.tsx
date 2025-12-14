@@ -72,11 +72,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
 
         setIsLoading(true);
-        const code = await dbAPI.generateCode(cleanName, type);
-        setGeneratedCode(code);
-        setOwnerName('');
-        await refreshData();
-        setIsLoading(false);
+        try {
+            const code = await dbAPI.generateCode(cleanName, type);
+            setGeneratedCode(code);
+            setOwnerName('');
+            setError(null); // Clear previous errors on success
+        } catch (e) {
+            console.error("Generation Error:", e);
+            setError("فشل توليد الكود. يرجى التحقق من اتصال قاعدة البيانات.");
+        } finally {
+            await refreshData();
+            setIsLoading(false);
+        }
     };
 
     const executeAction = async () => {

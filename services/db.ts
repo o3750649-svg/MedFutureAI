@@ -51,7 +51,7 @@ export const dbAPI = {
 
     if (error) {
         console.error("Supabase Error:", error);
-        throw new Error("Failed to generate code");
+        throw new Error(`Failed to generate code: ${error.message}`);
     }
 
     return code;
