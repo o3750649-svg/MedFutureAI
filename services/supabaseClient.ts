@@ -15,9 +15,11 @@ const getEnv = (key: string) => {
     // 2. Try Node/Process (Standard fallback)
     try {
         // @ts-ignore
-        if (typeof process !== 'undefined' && process.env && process.env[key]) {
-            // @ts-ignore
-            return process.env[key];
+        if (typeof process !== 'undefined' && process.env) {
+            // Check without VITE_
+            if (process.env[key]) return process.env[key];
+            // Check with VITE_
+            if (process.env[`VITE_${key}`]) return process.env[`VITE_${key}`];
         }
     } catch (e) {
         // Ignore reference errors in strict browser environments
