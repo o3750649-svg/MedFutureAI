@@ -34,11 +34,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
     const refreshData = async () => {
         setIsLoading(true);
-        const data = await dbAPI.getAllUsers();
-        // Sort: Active first, then Frozen, then Banned. Within that, newest first.
-        const sorted = data.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
-        setUsers(sorted);
-        setIsLoading(false);
+        try {
+            const data = await dbAPI.getAllUsers();
+            // Sort: Active first, then Frozen, then Banned. Within that, newest first.
+            const sorted = data.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+            setUsers(sorted);
+            console.log(`✅ Data refreshed: ${sorted.length} users loaded`);
+        } catch (e: any) {
+            console.error("❌ Refresh Error:", e);
+            setError(`فشل تحميل البيانات: ${e?.message || "خطأ غير متوقع"}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -76,32 +83,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
         }
 
         setIsLoading(true);
-        const code = await dbAPI.generateCode(cleanName, type);
-        setGeneratedCode(code);
-        setOwnerName('');
-        await refreshData();
-        setIsLoading(false);
+        setError(null); // Clear previous errors
+        try {
+            const code = await dbAPI.generateCode(cleanName, type);
+            if (code) {
+                setGeneratedCode(code);
+                setOwnerName('');
+                setError(null);
+                console.log("✅ Code generated successfully:", code);
+            } else {
+                throw new Error("لم يتم إرجاع كود");
+            }
+        } catch (e: any) {
+            console.error("❌ Generation Error:", e);
+            const errorMsg = e?.message || "حدث خطأ غير متوقع";
+            setError(`فشل توليد الكود: ${errorMsg}`);
+            setGeneratedCode(null); // Clear any previous code
+        } finally {
+            await refreshData();
+            setIsLoading(false);
+        }
     };
 
     const executeAction = async () => {
         if (!selectedCode || !modalAction) return;
 
-        if (modalAction === 'delete') {
-            await dbAPI.deleteUser(selectedCode);
-        } else if (modalAction === 'ban') {
-            await dbAPI.banUser(selectedCode);
-        } else if (modalAction === 'renew') {
-            await dbAPI.renewUser(selectedCode);
+        setIsLoading(true);
+        try {
+            if (modalAction === 'delete') {
+                await dbAPI.deleteUser(selectedCode);
+                console.log("✅ User deleted:", selectedCode);
+            } else if (modalAction === 'ban') {
+                await dbAPI.banUser(selectedCode);
+                console.log("✅ User banned:", selectedCode);
+            } else if (modalAction === 'renew') {
+                await dbAPI.renewUser(selectedCode);
+                console.log("✅ User renewed:", selectedCode);
+            }
+        } catch (e: any) {
+            console.error("❌ Action Error:", e);
+            setError(`فشل تنفيذ العملية: ${e?.message || "خطأ غير متوقع"}`);
+        } finally {
+            setModalAction(null);
+            setSelectedCode(null);
+            await refreshData();
+            setIsLoading(false);
         }
-
-        setModalAction(null);
-        setSelectedCode(null);
-        await refreshData();
     };
 
     const handleUnban = async (code: string) => {
-        await dbAPI.unbanUser(code);
-        await refreshData();
+        setIsLoading(true);
+        try {
+            await dbAPI.unbanUser(code);
+            console.log("✅ User unbanned:", code);
+        } catch (e: any) {
+            console.error("❌ Unban Error:", e);
+            setError(`فشل فك الحظر: ${e?.message || "خطأ غير متوقع"}`);
+        } finally {
+            await refreshData();
+            setIsLoading(false);
+        }
     }
 
     const copyToClipboard = (text: string) => {
