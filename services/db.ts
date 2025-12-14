@@ -32,29 +32,48 @@ export const dbAPI = {
   // Generate a new code (Admin only)
   generateCode: async (ownerName: string, type: PlanType): Promise<string> => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const MAX_RETRIES = 5;
     let code = '';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    code += '-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    code += '-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
 
-    const { error } = await supabase
-        .from('users')
-        .insert([{
-            code,
-            owner_name: ownerName,
-            type,
-            status: 'active',
-            is_used: false
-        }]);
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        // 1. Generate Code
+        code = '';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += '-';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += '-';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
 
-    if (error) {
-        console.error("Supabase Error:", error);
-        throw new Error(`Failed to generate code: ${error.message}`);
+        // 2. Attempt to Insert
+        const { error } = await supabase
+            .from('users')
+            .insert([{
+                code,
+                owner_name: ownerName,
+                type,
+                status: 'active',
+                is_used: false
+            }]);
+
+        if (!error) {
+            // Success! Return the code
+            return code;
+        }
+
+        // 3. Check for Duplicate Key Error (Error code 23505 is PostgreSQL unique violation)
+        if (error.code === '23505') {
+            console.warn(`Duplicate code generated: ${code}. Retrying...`);
+            // Continue to the next iteration to generate a new code
+            continue;
+        } else {
+            // Other error (e.g., RLS, permissions, connection)
+            console.error("Supabase Error:", error);
+            throw new Error(`Failed to generate code: ${error.message}`);
+        }
     }
 
-    return code;
+    // If all retries fail
+    throw new Error("Failed to generate a unique code after multiple retries.");
   },
 
   // Verify Login (The most critical security check)
