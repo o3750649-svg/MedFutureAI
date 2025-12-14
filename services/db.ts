@@ -1,9 +1,6 @@
 
 // services/db.ts
-// This file acts as a "Mock Server" and "Database Layer".
-// In a real production deployment (AWS/Vercel), this logic would move to a Node.js/Go backend.
-// Here, we simulate the server latency and data persistence using localStorage as the physical medium,
-// BUT the architecture allows you to swap 'saveToStorage' and 'loadFromStorage' with 'fetch()' calls later.
+import { supabase } from './supabaseClient';
 
 export type AccountStatus = 'active' | 'frozen' | 'banned';
 export type PlanType = 'monthly' | 'yearly';
@@ -19,109 +16,132 @@ export interface UserRecord {
   lastLogin?: string;
 }
 
-const DB_KEY = 'nabidh_secure_db_v2';
-
-// --- Internal DB Helpers (Simulating SQL/NoSQL) ---
-
-const loadDB = (): UserRecord[] => {
-  const data = localStorage.getItem(DB_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-const saveDB = (data: UserRecord[]) => {
-  localStorage.setItem(DB_KEY, JSON.stringify(data));
-};
-
-// --- Public API Methods (Simulating Server Endpoints) ---
+// Helper to map DB snake_case to TS camelCase
+const mapUserFromDB = (data: any): UserRecord => ({
+    code: data.code,
+    ownerName: data.owner_name,
+    type: data.type as PlanType,
+    status: data.status as AccountStatus,
+    generatedAt: data.generated_at,
+    expiryDate: data.expiry_date,
+    isUsed: data.is_used,
+    lastLogin: data.last_login
+});
 
 export const dbAPI = {
   // Generate a new code (Admin only)
   generateCode: async (ownerName: string, type: PlanType): Promise<string> => {
-    // Simulate server delay
-    await new Promise(r => setTimeout(r, 500));
-
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const MAX_RETRIES = 5;
     let code = '';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    code += '-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    code += '-';
-    for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
 
-    const db = loadDB();
-    const newRecord: UserRecord = {
-      code,
-      ownerName,
-      type,
-      status: 'active', // Initially active, but waiting to be used
-      generatedAt: new Date().toISOString(),
-      expiryDate: null,
-      isUsed: false
-    };
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        // 1. Generate Code
+        code = '';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += '-';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        code += '-';
+        for (let i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
 
-    db.push(newRecord);
-    saveDB(db);
-    return code;
+        // 2. Attempt to Insert
+        const { error } = await supabase
+            .from('users')
+            .insert([{
+                code,
+                owner_name: ownerName,
+                type,
+                status: 'active',
+                generated_at: new Date().toISOString(),
+                expiry_date: null,
+                is_used: false
+            }]);
+
+        if (!error) {
+            // Success! Return the code
+            return code;
+        }
+
+        // 3. Check for Duplicate Key Error (Error code 23505 is PostgreSQL unique violation)
+        if (error.code === '23505') {
+            console.warn(`Duplicate code generated: ${code}. Retrying...`);
+            // Continue to the next iteration to generate a new code
+            continue;
+        } else {
+            // Other error (e.g., RLS, permissions, connection)
+            console.error("Supabase Error:", error);
+            throw new Error(`Failed to generate code: ${error.message}`);
+        }
+    }
+
+    // If all retries fail
+    throw new Error("Failed to generate a unique code after multiple retries.");
   },
 
   // Verify Login (The most critical security check)
   verifyUser: async (code: string): Promise<{ success: boolean; message?: string; data?: UserRecord }> => {
-    await new Promise(r => setTimeout(r, 800)); // Network simulation
-
-    const db = loadDB();
     const normalizedCode = code.trim().toUpperCase();
-    const userIndex = db.findIndex(u => u.code === normalizedCode);
 
-    if (userIndex === -1) {
+    // 1. Fetch User
+    const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('code', normalizedCode)
+        .single();
+
+    if (error || !userData) {
       return { success: false, message: 'الكود غير صحيح أو غير مسجل في النظام.' };
     }
 
-    const user = db[userIndex];
+    const user = mapUserFromDB(userData);
 
-    // 1. Check if Banned (Highest Priority)
+    // 2. Check if Banned
     if (user.status === 'banned') {
       return { success: false, message: 'تم حظر هذا الحساب لمخالفة شروط الاستخدام. يرجى التواصل مع الإدارة.' };
     }
 
-    // 2. Logic for First Time Use vs Returning User
     const now = new Date();
 
+    // 3. Logic for First Time Use
     if (!user.isUsed) {
-      // First time activation
-      user.isUsed = true;
       const expiry = new Date();
       if (user.type === 'monthly') expiry.setDate(expiry.getDate() + 30);
       else expiry.setFullYear(expiry.getFullYear() + 1);
       
-      user.expiryDate = expiry.toISOString();
-      user.status = 'active';
-      user.lastLogin = now.toISOString();
+      const { data: updatedData, error: updateError } = await supabase
+        .from('users')
+        .update({
+            is_used: true,
+            expiry_date: expiry.toISOString(),
+            status: 'active',
+            last_login: now.toISOString()
+        })
+        .eq('code', normalizedCode)
+        .select()
+        .single();
+
+      if (updateError || !updatedData) {
+          return { success: false, message: 'حدث خطأ أثناء تفعيل الحساب.' };
+      }
       
-      db[userIndex] = user;
-      saveDB(db);
-      return { success: true, data: user };
+      return { success: true, data: mapUserFromDB(updatedData) };
     }
 
-    // 3. Check Expiry (Frozen Logic)
+    // 4. Check Expiry (Auto-Freeze Logic)
     if (user.expiryDate && new Date(user.expiryDate) < now) {
-      // Auto-freeze if expired but not yet marked as frozen
       if (user.status !== 'frozen') {
-        user.status = 'frozen';
-        db[userIndex] = user;
-        saveDB(db);
+        await supabase.from('users').update({ status: 'frozen' }).eq('code', normalizedCode);
       }
       return { success: false, message: 'انتهت صلاحية اشتراكك. حالة الحساب: مجمد. يرجى التجديد لاستعادة الوصول.' };
     }
 
-    // 4. Check if manually Frozen by Admin
+    // 5. Check if manually Frozen
     if (user.status === 'frozen') {
       return { success: false, message: 'هذا الحساب مجمد مؤقتاً. يرجى التواصل مع الدعم الفني.' };
     }
 
-    // Success
-    user.lastLogin = now.toISOString();
-    db[userIndex] = user;
-    saveDB(db);
+    // Success - Update Last Login
+    await supabase.from('users').update({ last_login: now.toISOString() }).eq('code', normalizedCode);
     
     return { success: true, data: user };
   },
@@ -129,56 +149,48 @@ export const dbAPI = {
   // --- Admin Functions ---
 
   getAllUsers: async (): Promise<UserRecord[]> => {
-    return loadDB();
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('generated_at', { ascending: false });
+    
+    if (error) {
+        console.error("Fetch Error:", error);
+        return [];
+    }
+    return data.map(mapUserFromDB);
   },
 
-  // Ban User
   banUser: async (code: string): Promise<void> => {
-    const db = loadDB();
-    const user = db.find(u => u.code === code);
-    if (user) {
-      user.status = 'banned';
-      saveDB(db);
-    }
+    await supabase.from('users').update({ status: 'banned' }).eq('code', code);
   },
 
-  // Unban User
   unbanUser: async (code: string): Promise<void> => {
-    const db = loadDB();
-    const user = db.find(u => u.code === code);
-    if (user) {
-      // Check if expired to decide if active or frozen
-      const now = new Date();
-      if (user.expiryDate && new Date(user.expiryDate) < now) {
-        user.status = 'frozen';
-      } else {
-        user.status = 'active';
-      }
-      saveDB(db);
-    }
+    // Logic: If expired, set frozen, else active
+    // We need to check expiry first, but for simplicity in unban, we can default to active 
+    // and let verifyUser handle re-freezing if expired.
+    await supabase.from('users').update({ status: 'active' }).eq('code', code);
   },
 
-  // Renew Subscription (Unfreeze)
   renewUser: async (code: string): Promise<void> => {
-    const db = loadDB();
-    const user = db.find(u => u.code === code);
-    if (user) {
-      const now = new Date();
-      const newExpiry = new Date();
-      // Add time based on plan type
-      if (user.type === 'monthly') newExpiry.setDate(newExpiry.getDate() + 30);
-      else newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+    // Get current user details to check plan type
+    const { data } = await supabase.from('users').select('type').eq('code', code).single();
+    if (!data) return;
 
-      user.expiryDate = newExpiry.toISOString();
-      user.status = 'active'; // Reactivate
-      saveDB(db);
-    }
+    const newExpiry = new Date();
+    if (data.type === 'monthly') newExpiry.setDate(newExpiry.getDate() + 30);
+    else newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+
+    await supabase
+        .from('users')
+        .update({ 
+            expiry_date: newExpiry.toISOString(),
+            status: 'active' 
+        })
+        .eq('code', code);
   },
   
-  // Delete User Permanently
   deleteUser: async (code: string): Promise<void> => {
-      let db = loadDB();
-      db = db.filter(u => u.code !== code);
-      saveDB(db);
+      await supabase.from('users').delete().eq('code', code);
   }
 };

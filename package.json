@@ -1,32 +1,31 @@
 {
-  "name": "medfutureai-frontend",
+  "name": "nabidh-medical-ai",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node --max-old-space-size=460 node_modules/vite/bin/vite.js --host",
     "build": "vite build",
     "preview": "vite preview",
-    "backend": "cd backend && npm start",
-    "backend:dev": "cd backend && npm run dev",
-    "backend:init": "cd backend && npm run init-db",
-    "start:all": "concurrently \"npm run backend:dev\" \"npm run dev\""
+    "start": "node --max-old-space-size=460 node_modules/vite/bin/vite.js preview --host --port $PORT"
   },
   "dependencies": {
-    "react": "^19.2.1",
-    "react-dom": "^19.2.1",
-    "three": "0.160.0",
-    "@react-three/fiber": "8.15.14",
-    "@react-three/drei": "9.96.1",
-    "@google/genai": "^1.27.0",
-    "jspdf": "2.5.1",
-    "html2canvas": "1.4.1"
+    "@google/genai": "^1.33.0",
+    "@react-three/drei": "^9.105.6",
+    "@react-three/fiber": "^8.16.2",
+    "@supabase/supabase-js": "^2.42.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.163.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "concurrently": "^8.2.2"
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@types/three": "^0.163.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0"
   }
 }

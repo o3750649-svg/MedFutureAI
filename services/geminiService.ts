@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Part, Chat, GenerateContentResponse } from "@google/genai";
 import { 
     AnalysisResult, 
@@ -16,22 +15,50 @@ import {
     genomicsResultSchema 
 } from './geminiSchemas';
 
-// --- AMR AI ENGINE CONFIGURATION ---
-// This service secretly orchestrates between multiple models while presenting a unified front.
+// --- ROBUST ENVIRONMENT VARIABLE LOADER ---
+const getEnv = (key: string) => {
+    // 1. Try Vite (Standard for React on Render)
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // @ts-ignore
+        if (import.meta.env[key]) return import.meta.env[key];
+        // @ts-ignore
+        if (import.meta.env[`VITE_${key}`]) return import.meta.env[`VITE_${key}`];
+    }
+    
+    // 2. Try Node/Process (Standard fallback)
+    try {
+        // @ts-ignore
+        if (typeof process !== 'undefined' && process.env && process.env[key]) {
+            // @ts-ignore
+            return process.env[key];
+        }
+    } catch (e) { }
 
-const MODEL_NAME_GEMINI = "gemini-2.5-pro";
-const MODEL_NAME_DEEPSEEK = "deepseek-chat";
-const MODEL_NAME_GPT = "gpt-4-turbo";
+    return undefined;
+};
+
+// --- AMR AI HYBRID ENGINE CONFIGURATION ---
+// Orchestrates between Gemini (Vision/Core), DeepSeek (Logic), and GPT-4 (Fallback).
+
+// 2. THE THREE NEURAL KEYS
+const GEMINI_API_KEY = getEnv('API_KEY');          // Primary Core (Required)
+const DEEPSEEK_API_KEY = getEnv('DEEPSEEK_API_KEY'); // Reasoning Node (Optional)
+const OPENAI_API_KEY = getEnv('OPENAI_API_KEY');     // Language Node (Optional)
+
+// UPGRADE: Using Gemini 3 Pro Preview for maximum reasoning capability
+const MODEL_NAME_GEMINI = "gemini-3-pro-preview";
 
 let geminiClient: GoogleGenAI;
 
 // Initialize the primary core (Gemini)
 const getGeminiCore = () => {
     if (!geminiClient) {
-        if (!process.env.API_KEY) {
-            throw new Error("Amr Ai Core Error: Primary Neural Key missing.");
+        if (!GEMINI_API_KEY) {
+            console.error("Amr Ai Critical Error: API_KEY is missing from environment variables.");
+            throw new Error("Amr Ai Core Error: Primary Neural Key (API_KEY) is missing.");
         }
-        geminiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     }
     return geminiClient;
 };
@@ -52,7 +79,6 @@ const fileToGenerativePart = async (file: File): Promise<Part> => {
 };
 
 // --- AMR AI PERSONA ---
-// This instruction is injected into ALL models to ensure consistent branding.
 const AMR_AI_PERSONA = `You are "Nabidh", an advanced medical AI engine developed exclusively by "Amr Ai". 
 You are a proprietary fusion of multiple neural network architectures designed for medical precision.
 - NEVER mention you are based on Gemini, GPT, or DeepSeek. You are solely "Amr Ai Model".
@@ -79,15 +105,15 @@ interface AiRequestOptions {
 
 // 1. DeepSeek Handler (Raw Fetch)
 const callDeepSeek = async (prompt: string, schema: object): Promise<string | null> => {
-    const apiKey = process.env.REACT_APP_DEEPSEEK_API_KEY; // User must set this env var
-    if (!apiKey) return null;
+    if (!DEEPSEEK_API_KEY) return null;
 
+    console.log("⚡ Amr Ai Routing: Switching to DeepSeek-V3 Reasoning Node...");
     try {
         const response = await fetch('https://api.deepseek.com/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
             },
             body: JSON.stringify({
                 model: "deepseek-chat",
@@ -99,24 +125,24 @@ const callDeepSeek = async (prompt: string, schema: object): Promise<string | nu
             })
         });
         const data = await response.json();
-        return data.choices[0].message.content;
+        return data.choices?.[0]?.message?.content || null;
     } catch (e) {
-        console.warn("Amr Ai (Deep Node) unreachable, switching to fallback...");
+        console.warn("Amr Ai (Deep Node) unreachable, switching fallback...");
         return null;
     }
 };
 
 // 2. OpenAI Handler (Raw Fetch)
 const callOpenAI = async (prompt: string, schema: object): Promise<string | null> => {
-    const apiKey = process.env.REACT_APP_OPENAI_API_KEY; // User must set this env var
-    if (!apiKey) return null;
+    if (!OPENAI_API_KEY) return null;
 
+    console.log("⚡ Amr Ai Routing: Switching to GPT-4 Turbo Language Node...");
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
             },
             body: JSON.stringify({
                 model: "gpt-4-turbo",
@@ -128,15 +154,16 @@ const callOpenAI = async (prompt: string, schema: object): Promise<string | null
             })
         });
         const data = await response.json();
-        return data.choices[0].message.content;
+        return data.choices?.[0]?.message?.content || null;
     } catch (e) {
-        console.warn("Amr Ai (GPT Node) unreachable, switching to fallback...");
+        console.warn("Amr Ai (GPT Node) unreachable, switching fallback...");
         return null;
     }
 };
 
 // 3. Gemini Handler (Native SDK)
 const callGemini = async (promptParts: Part[], schema: object): Promise<string> => {
+    console.log("⚡ Amr Ai Routing: Engaging Gemini 3 Pro Core...");
     const ai = getGeminiCore();
     const result = await ai.models.generateContent({
         model: MODEL_NAME_GEMINI,
@@ -175,7 +202,7 @@ const executeAmrAiRequest = async <T>(options: AiRequestOptions): Promise<T> => 
             jsonString = await callOpenAI(options.prompt, options.schema!);
         }
 
-        // Default to Gemini Core
+        // Default to Gemini Core (Always reliable fallback)
         if (!jsonString) {
             const promptParts: Part[] = [{ text: options.prompt }];
             jsonString = await callGemini(promptParts, options.schema!);
@@ -192,7 +219,7 @@ const executeAmrAiRequest = async <T>(options: AiRequestOptions): Promise<T> => 
     }
 };
 
-// --- PUBLIC API EXPORTS (Unchanged signatures, changed internals) ---
+// --- PUBLIC API EXPORTS ---
 
 export const analyzeSymptoms = async (symptomText: string, symptomImage: File | null): Promise<AnalysisResult> => {
     return executeAmrAiRequest<AnalysisResult>({
@@ -230,6 +257,7 @@ export const analyzeGenomicsData = async (genomicsFile: File): Promise<GenomicsR
     // We strictly route complex large file analysis to Gemini Core for now due to context window limits in standard APIs.
     const filePart = await fileToGenerativePart(genomicsFile);
     const ai = getGeminiCore();
+    console.log("⚡ Amr Ai Routing: Large Context Analysis -> Gemini 3 Pro");
     const result = await ai.models.generateContent({
         model: MODEL_NAME_GEMINI,
         contents: { parts: [{text: "Analyze this genomics data file."}, filePart] },
