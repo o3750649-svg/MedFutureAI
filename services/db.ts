@@ -53,6 +53,7 @@ export const dbAPI = {
                 type,
                 status: 'active',
                 generated_at: new Date().toISOString(),
+                expiry_date: null,
                 is_used: false
             }]);
 
