@@ -52,6 +52,7 @@ export const dbAPI = {
                 owner_name: ownerName,
                 type,
                 status: 'active',
+                generated_at: new Date().toISOString(),
                 is_used: false
             }]);
 
