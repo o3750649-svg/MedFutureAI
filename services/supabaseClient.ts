@@ -32,7 +32,7 @@ const getEnv = (key: string) => {
 // 1. Try to get keys from Render Environment Variables (Secure)
 // 2. Fallback to hardcoded credentials (Reliability Guarantee)
 const SUPABASE_URL = getEnv('SUPABASE_URL');
-const SUPABASE_KEY = getEnv('SUPABASE_KEY');
+const SUPABASE_KEY = getEnv('SUPABASE_ANON_KEY');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error("FATAL: Amr Ai Database Connection Failed. Credentials missing.");
