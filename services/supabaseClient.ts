@@ -31,8 +31,8 @@ const getEnv = (key: string) => {
 // CONFIGURATION:
 // 1. Try to get keys from Render Environment Variables (Secure)
 // 2. Fallback to hardcoded credentials (Reliability Guarantee)
-const SUPABASE_URL = getEnv('SUPABASE_URL') || 'https://bzibmjooqgfobdmtzyxv.supabase.co';
-const SUPABASE_KEY = getEnv('SUPABASE_KEY') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6aWJtam9vcWdmb2JkbXR6eXh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTQyNDc1NiwiZXhwIjoyMDgxMDAwNzU2fQ.ERdh3Mww9fJFVGNBI_YQXoQ2F2GGvgkIlw01t61Gsb0'; // Placeholder for Service Role Key
+const SUPABASE_URL = getEnv('SUPABASE_URL');
+const SUPABASE_KEY = getEnv('SUPABASE_KEY');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error("FATAL: Amr Ai Database Connection Failed. Credentials missing.");
