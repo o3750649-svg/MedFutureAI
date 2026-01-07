@@ -7,8 +7,15 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
-    sourcemap: false, // Disabling source maps saves significant memory
-    chunkSizeWarningLimit: 1600,
+    sourcemap: false,
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei'],
+        },
+      },
+    },
   },
   server: {
     host: true, 
