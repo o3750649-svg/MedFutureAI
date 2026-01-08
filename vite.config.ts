@@ -9,10 +9,20 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     chunkSizeWarningLimit: 2000,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.logs in production
+        drop_debugger: true
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei'],
+          vendor: ['react', 'react-dom'],
+          three: ['three', '@react-three/fiber', '@react-three/drei'],
+          gemini: ['@google/genai'],
+          supabase: ['@supabase/supabase-js']
         },
       },
     },
@@ -36,5 +46,8 @@ export default defineConfig({
       '.onrender.com',
       'localhost'
     ]
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', '@google/genai', '@supabase/supabase-js']
   }
 })

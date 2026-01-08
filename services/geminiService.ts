@@ -14,6 +14,8 @@ import {
     wellnessPlanSchema, 
     genomicsResultSchema 
 } from './geminiSchemas';
+import { errorHandler } from './errorHandler';
+import { logger } from './logger';
 
 // --- ROBUST ENVIRONMENT VARIABLE LOADER ---
 const getEnv = (key: string) => {
@@ -46,8 +48,8 @@ const GEMINI_API_KEY = getEnv('API_KEY');          // Primary Core (Required)
 const DEEPSEEK_API_KEY = getEnv('DEEPSEEK_API_KEY'); // Reasoning Node (Optional)
 const OPENAI_API_KEY = getEnv('OPENAI_API_KEY');     // Language Node (Optional)
 
-// UPGRADE: Using Gemini 3 Pro Preview for maximum reasoning capability
-const MODEL_NAME_GEMINI = "gemini-3-pro-preview";
+// UPGRADE: Using Gemini 2.0 Flash (Exp) - Latest stable model with enhanced capabilities
+const MODEL_NAME_GEMINI = "gemini-2.0-flash-exp";
 
 let geminiClient: GoogleGenAI;
 
@@ -55,10 +57,12 @@ let geminiClient: GoogleGenAI;
 const getGeminiCore = () => {
     if (!geminiClient) {
         if (!GEMINI_API_KEY) {
-            console.error("Amr Ai Critical Error: API_KEY is missing from environment variables.");
+            const errorMsg = "Amr Ai Critical Error: API_KEY is missing from environment variables.";
+            logger.error(errorMsg, null, 'GeminiService');
             throw new Error("Amr Ai Core Error: Primary Neural Key (API_KEY) is missing.");
         }
         geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+        logger.info("Gemini Core initialized successfully", null, 'GeminiService');
     }
     return geminiClient;
 };
