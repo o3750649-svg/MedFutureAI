@@ -100,7 +100,7 @@ const App: React.FC = () => {
   // Digital Twin State loaded from localStorage
   const [digitalTwinData, setDigitalTwinData] = useState<DigitalTwinData>(() => getUserProfile());
 
-  // Check Session on Mount
+  // Check Session on Mount and Periodically
   useEffect(() => {
       const initSession = async () => {
           const isValid = await checkUserSession();
@@ -126,10 +126,33 @@ const App: React.FC = () => {
                       }
                   }
               }
+          } else {
+              // If session is invalid, clear all state
+              setUserName(null);
+              setExpiryWarning(null);
+              clearAllState();
           }
           setIsCheckingAuth(false);
       };
+      
       initSession();
+      
+      // Set up periodic session check every 5 minutes (300000ms)
+      const sessionCheckInterval = setInterval(async () => {
+          if (isAuthenticated) {
+              const isValid = await checkUserSession();
+              if (!isValid) {
+                  console.log('⚠️ Session expired or invalidated. Logging out...');
+                  setIsAuthenticated(false);
+                  setUserName(null);
+                  setExpiryWarning(null);
+                  clearAllState();
+              }
+          }
+      }, 300000); // Check every 5 minutes
+      
+      // Cleanup interval on unmount
+      return () => clearInterval(sessionCheckInterval);
   }, [isAuthenticated]); // Added isAuthenticated dependency to re-check after login
 
   const handleLogout = () => {

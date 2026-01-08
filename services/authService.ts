@@ -1,41 +1,56 @@
 
 import { DigitalTwinData } from '../types';
-import { dbAPI, UserRecord } from './db';
 
 // The session key is only used to remember "who" is logged in on this browser.
-// The actual validity is checked against the DB every time app loads or critical actions occur.
+// The actual validity is checked against the backend every time app loads or critical actions occur.
 const SESSION_KEY = 'nabidh_user_session_v2';
-const ADMIN_SESSION_KEY = 'nabidh_admin_session_v2';
 const USER_PROFILE_KEY = 'nabidh_user_profile';
+const ADMIN_SESSION_KEY = 'nabidh_admin_session_v2';
+
+// Hard-coded admin credentials (Move to ENV in production)
+const ADMIN_CREDENTIALS = {
+    username: 'admin',
+    password: 'AmrAi2024!Secure'
+};
 
 // --- Admin ---
 export const adminLogin = (username: string, pass: string): boolean => {
-  if (username === 'Nabdh_Admin_27' && pass === 'P@t!ent#2025^Secure') {
-    localStorage.setItem(ADMIN_SESSION_KEY, 'true');
+  if (username === ADMIN_CREDENTIALS.username && pass === ADMIN_CREDENTIALS.password) {
+    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({ loggedIn: true, timestamp: Date.now() }));
+    console.log('✅ Admin logged in successfully');
     return true;
   }
+  console.log('❌ Admin login failed: Invalid credentials');
   return false;
 };
 
 export const isAdminLoggedIn = (): boolean => {
-  return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+  const session = localStorage.getItem(ADMIN_SESSION_KEY);
+  return session !== null;
 };
 
 export const adminLogout = () => {
   localStorage.removeItem(ADMIN_SESSION_KEY);
+  console.log('✅ Admin logged out');
 };
 
 // --- User Auth ---
 
 export const loginUser = async (code: string) => {
+    // Import db dynamically to avoid circular dependencies
+    const { dbAPI } = await import('./db');
     const result = await dbAPI.verifyUser(code);
+    
     if (result.success && result.data) {
-        // We store the code in session to re-verify later, but trust the DB result now
+        // Store session data for quick access
         localStorage.setItem(SESSION_KEY, JSON.stringify({ 
             code: result.data.code, 
             ownerName: result.data.ownerName,
             expiryDate: result.data.expiryDate 
         }));
+        console.log('✅ User logged in:', result.data.ownerName);
+    } else {
+        console.log('❌ Login failed:', result.message);
     }
     return result;
 };
@@ -46,16 +61,33 @@ export const checkUserSession = async (): Promise<boolean> => {
     
     const session = JSON.parse(sessionStr);
     
-    // Re-verify with DB to ensure user wasn't banned/frozen mid-session
-    const result = await dbAPI.verifyUser(session.code);
-    
-    if (!result.success) {
-        // Session invalid (Banned/Expired) -> Clear local
-        localStorage.removeItem(SESSION_KEY);
+    // Re-verify with database to ensure user wasn't banned/frozen mid-session
+    try {
+        // Import db dynamically to avoid circular dependencies
+        const { dbAPI } = await import('./db');
+        const result = await dbAPI.verifyUser(session.code);
+        
+        if (!result.success) {
+            // Session invalid (Banned/Expired/Frozen) -> Clear local and logout
+            console.log('❌ Session invalid:', result.message);
+            localStorage.removeItem(SESSION_KEY);
+            return false;
+        }
+        
+        // Update session data if needed
+        if (result.data) {
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ 
+                code: result.data.code, 
+                ownerName: result.data.ownerName,
+                expiryDate: result.data.expiryDate 
+            }));
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Session check error:', error);
         return false;
     }
-    
-    return true;
 };
 
 export const getUserName = (): string | null => {
